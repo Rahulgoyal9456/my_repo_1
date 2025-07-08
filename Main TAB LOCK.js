@@ -85,9 +85,6 @@
         }
     });
 
-console.log("✅ Tampermonkey is active on Kiwi");
-alert("✅ Tampermonkey is active!");
-
     
     window.addEventListener('yt-navigate-finish', () => {
     if (!ownsLock && !blocked) {
