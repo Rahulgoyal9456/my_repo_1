@@ -85,7 +85,6 @@
         }
     });
 
-    
     window.addEventListener('yt-navigate-finish', () => {
     if (!ownsLock && !blocked) {
         blockTab();
