@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         YouTube One Tab Lock - Mobile Fix
 // @namespace    http://tampermonkey.net/
-// @version      7
+// @version      7.1
 // @description  Only allow one YouTube tab — with auto-expiring lock (mobile-friendly)
 // @match        *://www.youtube.com/*
 // @match        *://m.youtube.com/*
-// @downloadURL  https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Main%20TAB%20LOCK%20Mobile.js
-// @updateURL    https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Main%20TAB%20LOCK%20Mobile.js
+// @downloadURL  https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/main/Main%20TAB%20LOCK.js
+// @updateURL    https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/main/Main%20TAB%20LOCK.js
 // @grant        none
 // ==/UserScript==
 
