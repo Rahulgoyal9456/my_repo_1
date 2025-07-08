@@ -5,6 +5,8 @@
 // @description  Only allow one YouTube tab — safe under Content Security Policy
 // @match        *://www.youtube.com/*
 // @match        *://m.youtube.com/*
+// @downloadURL  https://raw.githubusercontent.com/yourusername/your-repo-name/main/youtube-lock.user.js
+// @updateURL    https://raw.githubusercontent.com/yourusername/your-repo-name/main/youtube-lock.user.js
 // @grant        none
 // ==/UserScript==
 
