@@ -11,105 +11,86 @@
 // ==/UserScript==
 
 (function () {
-    const LOCK_KEY = 'yt_tab_lock';
-    const EXPIRY_MS = 20000; // 20 seconds
+    const CHANNEL_NAME = 'yt_tab_lock_channel';
+    const HEARTBEAT_INTERVAL = 5000; // 5 seconds
+    const TIMEOUT_MS = 7000; // Time to wait before assuming other tab is gone
+
+    const channel = new BroadcastChannel(CHANNEL_NAME);
     const myID = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const now = Date.now();
-    let ownsLock = false;
+    let isLocked = false;
+    let lastHeartbeat = 0;
     let blocked = false;
 
-    console.log(`[YT-LOCK] This tab's ID: ${myID}`);
+    console.log(`[YT-LOCK] My ID: ${myID}`);
 
-    function parseLock(lockValue) {
-        if (!lockValue) return null;
-        const [timestampStr, id] = lockValue.split('|');
-        return {
-            timestamp: parseInt(timestampStr, 10),
-            id
-        };
+    function becomeLeader() {
+        isLocked = true;
+        console.log('[YT-LOCK] This tab has become the lock holder.');
+        startHeartbeat();
     }
 
-    function claimLock() {
-        const raw = localStorage.getItem(LOCK_KEY);
-        const lock = parseLock(raw);
-
-        if (!lock || now - lock.timestamp > EXPIRY_MS) {
-            // Stale or no lock
-            localStorage.setItem(LOCK_KEY, `${now}|${myID}`);
-            ownsLock = true;
-            console.log('[YT-LOCK] Claimed lock.');
-        } else if (lock.id !== myID) {
-            console.warn(`[YT-LOCK] Lock held by another tab: ${lock.id}`);
-            blockTab();
-        } else {
-            ownsLock = true;
-            console.log('[YT-LOCK] Already owns lock.');
-        }
+    function startHeartbeat() {
+        setInterval(() => {
+            if (isLocked) {
+                channel.postMessage({ type: 'heartbeat', from: myID, time: Date.now() });
+            }
+        }, HEARTBEAT_INTERVAL);
     }
 
-    function blockTab() {
+    function blockTabUI() {
         if (blocked) return;
         blocked = true;
-        console.warn('[YT-LOCK] Blocking this tab.');
 
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                while (document.body.firstChild) {
-                    document.body.removeChild(document.body.firstChild);
-                }
+        console.warn('[YT-LOCK] Blocking this tab: another active tab is present.');
 
-                document.body.style.cssText = `
-                    background-color: #000;
-                    color: #fff;
-                    font-family: sans-serif;
-                    margin: 0;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    text-align: center;
-                `;
+        setTimeout(() => {
+            while (document.body.firstChild) {
+                document.body.removeChild(document.body.firstChild);
+            }
 
-                const heading = document.createElement('h1');
-                heading.textContent = '🚫 YouTube already open';
-                heading.style.fontSize = '2em';
+            document.body.style.cssText = `
+                background-color: #000;
+                color: #fff;
+                font-family: sans-serif;
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                text-align: center;
+            `;
 
-                const msg = document.createElement('p');
-                msg.textContent = 'Only one tab allowed at a time.';
+            const h1 = document.createElement('h1');
+            h1.textContent = '🚫 YouTube already open';
+            h1.style.fontSize = '2em';
 
-                document.body.appendChild(heading);
-                document.body.appendChild(msg);
-            }, 100);
-        });
+            const p = document.createElement('p');
+            p.textContent = 'Only one tab is allowed at a time.';
+
+            document.body.appendChild(h1);
+            document.body.appendChild(p);
+        }, 100);
     }
 
-    claimLock();
-
-    window.addEventListener('storage', (event) => {
-        if (event.key === LOCK_KEY) {
-            const newLock = parseLock(event.newValue);
-            if (newLock && newLock.id !== myID) {
-                console.warn('[YT-LOCK] Lock stolen. Blocking this tab.');
-                ownsLock = false;
-                blockTab();
+    // Listen for heartbeats
+    channel.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'heartbeat' && e.data.from !== myID) {
+            lastHeartbeat = Date.now();
+            if (!isLocked && !blocked) {
+                blockTabUI();
             }
         }
     });
 
-    window.addEventListener('yt-navigate-finish', () => {
-        if (!ownsLock && !blocked) {
-            blockTab();
+    // Monitor to decide if we can become leader
+    setTimeout(() => {
+        const now = Date.now();
+        if (now - lastHeartbeat > TIMEOUT_MS) {
+            becomeLeader();
+        } else {
+            blockTabUI();
         }
-    });
-
-    // Even if unload doesn’t fire, lock will auto-expire
-    window.addEventListener('beforeunload', () => {
-        const raw = localStorage.getItem(LOCK_KEY);
-        const lock = parseLock(raw);
-        if (lock && lock.id === myID) {
-            console.log('[YT-LOCK] Releasing lock on unload.');
-            localStorage.removeItem(LOCK_KEY);
-        }
-    });
+    }, 500);
 })();
+
