@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube One Tab Lock - Mobile Fix
 // @namespace    http://tampermonkey.net/
-// @version      6.1
+// @version      7
 // @description  Only allow one YouTube tab — with auto-expiring lock (mobile-friendly)
 // @match        *://www.youtube.com/*
 // @match        *://m.youtube.com/*
@@ -11,37 +11,51 @@
 // ==/UserScript==
 
 (function () {
-    const CHANNEL_NAME = 'yt_tab_lock_channel';
-    const HEARTBEAT_INTERVAL = 5000; // 5 seconds
-    const TIMEOUT_MS = 7000; // Time to wait before assuming other tab is gone
-
-    const channel = new BroadcastChannel(CHANNEL_NAME);
+    const LOCK_KEY = 'yt_tab_lock';
     const myID = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    let isLocked = false;
-    let lastHeartbeat = 0;
+    const EXPIRY = 5000; // lock timeout = 5s
+    const PING_INTERVAL = 2000;
+
+    let ownsLock = false;
     let blocked = false;
 
-    console.log(`[YT-LOCK] My ID: ${myID}`);
-
-    function becomeLeader() {
-        isLocked = true;
-        console.log('[YT-LOCK] This tab has become the lock holder.');
-        startHeartbeat();
+    function parseLock(raw) {
+        if (!raw) return null;
+        const [timestamp, id] = raw.split('|');
+        return { time: parseInt(timestamp), id };
     }
 
-    function startHeartbeat() {
+    function claimOrBlock() {
+        const now = Date.now();
+        const lock = parseLock(localStorage.getItem(LOCK_KEY));
+
+        if (!lock || now - lock.time > EXPIRY) {
+            // Expired or no lock — claim it
+            localStorage.setItem(LOCK_KEY, `${now}|${myID}`);
+            ownsLock = true;
+            console.log('[YT-LOCK] Lock claimed.');
+        } else if (lock.id !== myID) {
+            // Someone else has lock — block
+            blockTabUI(lock.id);
+        } else {
+            // We already have lock
+            ownsLock = true;
+        }
+    }
+
+    function pingLoop() {
         setInterval(() => {
-            if (isLocked) {
-                channel.postMessage({ type: 'heartbeat', from: myID, time: Date.now() });
+            if (ownsLock) {
+                localStorage.setItem(LOCK_KEY, `${Date.now()}|${myID}`);
             }
-        }, HEARTBEAT_INTERVAL);
+        }, PING_INTERVAL);
     }
 
-    function blockTabUI() {
+    function blockTabUI(otherID) {
         if (blocked) return;
         blocked = true;
 
-        console.warn('[YT-LOCK] Blocking this tab: another active tab is present.');
+        console.warn(`[YT-LOCK] This tab is blocked. Another tab (${otherID}) has the lock.`);
 
         setTimeout(() => {
             while (document.body.firstChild) {
@@ -66,30 +80,35 @@
             h1.style.fontSize = '2em';
 
             const p = document.createElement('p');
-            p.textContent = 'Only one tab is allowed at a time.';
+            p.textContent = 'Only one tab allowed at a time.';
 
             document.body.appendChild(h1);
             document.body.appendChild(p);
         }, 100);
     }
 
-    // Listen for heartbeats
-    channel.addEventListener('message', (e) => {
-        if (e.data && e.data.type === 'heartbeat' && e.data.from !== myID) {
-            lastHeartbeat = Date.now();
-            if (!isLocked && !blocked) {
-                blockTabUI();
+    // React to lock stolen
+    window.addEventListener('storage', (e) => {
+        if (e.key === LOCK_KEY && !blocked) {
+            const lock = parseLock(e.newValue);
+            if (lock && lock.id !== myID) {
+                console.log('[YT-LOCK] Detected new lock owner.');
+                if (!ownsLock) blockTabUI(lock.id);
+                ownsLock = false;
             }
         }
     });
 
-    // Monitor to decide if we can become leader
-    setTimeout(() => {
-        const now = Date.now();
-        if (now - lastHeartbeat > TIMEOUT_MS) {
-            becomeLeader();
-        } else {
-            blockTabUI();
+    // Release lock if possible
+    window.addEventListener('beforeunload', () => {
+        const lock = parseLock(localStorage.getItem(LOCK_KEY));
+        if (lock && lock.id === myID) {
+            localStorage.removeItem(LOCK_KEY);
         }
-    }, 500);
+    });
+
+    // Init
+    claimOrBlock();
+    if (ownsLock) pingLoop();
 })();
+
