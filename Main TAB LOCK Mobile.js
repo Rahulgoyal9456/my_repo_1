@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube One Tab Lock - Mobile Fix
 // @namespace    http://tampermonkey.net/
-// @version      6.0
+// @version      6.1
 // @description  Only allow one YouTube tab — with auto-expiring lock (mobile-friendly)
 // @match        *://www.youtube.com/*
 // @match        *://m.youtube.com/*
@@ -93,4 +93,3 @@
         }
     }, 500);
 })();
-
