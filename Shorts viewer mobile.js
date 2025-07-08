@@ -5,8 +5,8 @@
 // @description  Redirect Shorts to normal player even when clicked without page reload
 // @match        *://www.youtube.com/*
 // @match        *://m.youtube.com/*
-// @downloadURL  https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Shorts%20viewer.js
-// @updateURL    https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Shorts%20viewer.js
+// @downloadURL  https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Shorts%20viewer%20mobile.js
+// @updateURL    https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Shorts%20viewer%20mobile.js
 // @grant        none
 // ==/UserScript==
 
