@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube One Tab Lock - Mobile Fix
 // @namespace    http://tampermonkey.net/
-// @version      7.1
+// @version      7.2
 // @description  Only allow one YouTube tab — with auto-expiring lock (mobile-friendly)
 // @match        *://www.youtube.com/*
 // @match        *://m.youtube.com/*
@@ -12,50 +12,48 @@
 
 (function () {
     const LOCK_KEY = 'yt_tab_lock';
-    const myID = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const EXPIRY = 5000; // lock timeout = 5s
+    const EXPIRY = 6000; // 6 seconds
     const PING_INTERVAL = 2000;
+
+    // Try to reuse same tab ID if already stored
+    let myID = sessionStorage.getItem('yt_tab_id');
+    if (!myID) {
+        myID = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        sessionStorage.setItem('yt_tab_id', myID);
+    }
 
     let ownsLock = false;
     let blocked = false;
 
-    function parseLock(raw) {
-        if (!raw) return null;
-        const [timestamp, id] = raw.split('|');
+    function parseLock(value) {
+        if (!value) return null;
+        const [timestamp, id] = value.split('|');
         return { time: parseInt(timestamp), id };
     }
 
-    function claimOrBlock() {
+    function claimOrRespectLock() {
         const now = Date.now();
         const lock = parseLock(localStorage.getItem(LOCK_KEY));
 
         if (!lock || now - lock.time > EXPIRY) {
-            // Expired or no lock — claim it
+            // No lock or expired — claim it
             localStorage.setItem(LOCK_KEY, `${now}|${myID}`);
             ownsLock = true;
-            console.log('[YT-LOCK] Lock claimed.');
-        } else if (lock.id !== myID) {
-            // Someone else has lock — block
-            blockTabUI(lock.id);
-        } else {
-            // We already have lock
+            console.log('[YT-LOCK] Claimed lock.');
+        } else if (lock.id === myID) {
+            // We already own it — keep going
             ownsLock = true;
+            console.log('[YT-LOCK] Resuming existing lock.');
+        } else {
+            // Another tab has lock — block self
+            blockTab(lock.id);
         }
     }
 
-    function pingLoop() {
-        setInterval(() => {
-            if (ownsLock) {
-                localStorage.setItem(LOCK_KEY, `${Date.now()}|${myID}`);
-            }
-        }, PING_INTERVAL);
-    }
-
-    function blockTabUI(otherID) {
+    function blockTab(holderID) {
         if (blocked) return;
         blocked = true;
-
-        console.warn(`[YT-LOCK] This tab is blocked. Another tab (${otherID}) has the lock.`);
+        console.warn(`[YT-LOCK] This tab is blocked. Lock is with: ${holderID}`);
 
         setTimeout(() => {
             while (document.body.firstChild) {
@@ -80,35 +78,47 @@
             h1.style.fontSize = '2em';
 
             const p = document.createElement('p');
-            p.textContent = 'Only one tab allowed at a time.';
+            p.textContent = 'Only one tab is allowed at a time.';
 
             document.body.appendChild(h1);
             document.body.appendChild(p);
         }, 100);
     }
 
-    // React to lock stolen
-    window.addEventListener('storage', (e) => {
-        if (e.key === LOCK_KEY && !blocked) {
-            const lock = parseLock(e.newValue);
-            if (lock && lock.id !== myID) {
-                console.log('[YT-LOCK] Detected new lock owner.');
-                if (!ownsLock) blockTabUI(lock.id);
-                ownsLock = false;
+    function pingLoop() {
+        setInterval(() => {
+            if (ownsLock) {
+                const now = Date.now();
+                const lock = parseLock(localStorage.getItem(LOCK_KEY));
+                if (!lock || lock.id === myID) {
+                    localStorage.setItem(LOCK_KEY, `${now}|${myID}`);
+                }
             }
-        }
-    });
+        }, PING_INTERVAL);
+    }
 
     // Release lock if possible
     window.addEventListener('beforeunload', () => {
         const lock = parseLock(localStorage.getItem(LOCK_KEY));
         if (lock && lock.id === myID) {
             localStorage.removeItem(LOCK_KEY);
+            console.log('[YT-LOCK] Released lock.');
         }
     });
 
-    // Init
-    claimOrBlock();
+    // React to lock stolen
+    window.addEventListener('storage', (e) => {
+        if (e.key === LOCK_KEY && !blocked) {
+            const lock = parseLock(e.newValue);
+            if (lock && lock.id !== myID) {
+                console.warn('[YT-LOCK] Detected lock stolen. Blocking self.');
+                ownsLock = false;
+                blockTab(lock.id);
+            }
+        }
+    });
+
+    // Initial
+    claimOrRespectLock();
     if (ownsLock) pingLoop();
 })();
-
