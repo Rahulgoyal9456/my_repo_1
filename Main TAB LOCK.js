@@ -28,14 +28,18 @@
         } else if (currentLock !== myID) {
             console.log(`[YT-LOCK] Lock held by another tab: ${currentLock}`);
             blockTab();
-            setTimeout(() => {
-                window.close();
-            }, 3000);
+            closetab();
         } else {
             console.log('[YT-LOCK] Already owns lock.');
         }
     }
 
+    function closetab() {
+        setTimeout(() => {
+            window.close();
+        }, 500);
+    }
+    
     function blockTab() {
         if (blocked) return;
         blocked = true;
@@ -84,9 +88,7 @@
             if (ownsLock) {
                 ownsLock = false;
                 blockTab();
-                setTimeout(() => {
-                    window.close();
-                }, 3000);
+                closetab();
             }
         }
     });
@@ -94,9 +96,7 @@
     window.addEventListener('yt-navigate-finish', () => {
     if (!ownsLock && !blocked) {
         blockTab();
-        setTimeout(() => {
-            window.close();
-        }, 3000);
+        closetab();
     }
     });
 
