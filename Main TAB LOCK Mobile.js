@@ -7,7 +7,7 @@
 // @match        *://m.youtube.com/*
 // @downloadURL  https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/main/Main%20TAB%20LOCK%20Mobile.js
 // @updateURL    https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/main/Main%20TAB%20LOCK%20Mobile.js
-// @grant        none
+// @grant        window.close
 // ==/UserScript==
 
 (function () {
@@ -47,7 +47,14 @@
         } else {
             // Another tab has lock — block self
             blockTab(lock.id);
+            closetab();
         }
+    }
+
+    function closetab() {
+        setTimeout(() => {
+            window.close();
+        }, 500);
     }
 
     function blockTab(holderID) {
@@ -114,6 +121,7 @@
                 console.warn('[YT-LOCK] Detected lock stolen. Blocking self.');
                 ownsLock = false;
                 blockTab(lock.id);
+                closetab();
             }
         }
     });
