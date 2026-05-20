@@ -7,7 +7,7 @@
 // @match        *://m.youtube.com/*
 // @downloadURL  https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Main%20TAB%20LOCK.js
 // @updateURL    https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Main%20TAB%20LOCK.js
-// @grant        none
+// @grant        window.close
 // ==/UserScript==
 
 (function () {
@@ -28,6 +28,9 @@
         } else if (currentLock !== myID) {
             console.log(`[YT-LOCK] Lock held by another tab: ${currentLock}`);
             blockTab();
+            setTimeout(() => {
+                window.close();
+            }, 3000);
         } else {
             console.log('[YT-LOCK] Already owns lock.');
         }
@@ -81,6 +84,9 @@
             if (ownsLock) {
                 ownsLock = false;
                 blockTab();
+                setTimeout(() => {
+                    window.close();
+                }, 3000);
             }
         }
     });
@@ -88,6 +94,9 @@
     window.addEventListener('yt-navigate-finish', () => {
     if (!ownsLock && !blocked) {
         blockTab();
+        setTimeout(() => {
+            window.close();
+        }, 3000);
     }
     });
 
