@@ -5,6 +5,7 @@
 // @description  Only allow one YouTube tab — safe under Content Security Policy
 // @match        *://www.youtube.com/*
 // @match        *://m.youtube.com/*
+// @icon         https://upload.wikimedia.org/wikipedia/commons/6/62/YouTube_social_white_square_%282024%29.svg
 // @downloadURL  https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Main%20TAB%20LOCK.js
 // @updateURL    https://raw.githubusercontent.com/Rahulgoyal9456/my_repo_1/refs/heads/main/Main%20TAB%20LOCK.js
 // @grant        window.close
