@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube One Tab Lock - CSP Safe
 // @namespace    http://tampermonkey.net/
-// @version      5.3
+// @version      5.4
 // @description  Only allow one YouTube tab — safe under Content Security Policy
 // @match        *://www.youtube.com/*
 // @match        *://m.youtube.com/*
