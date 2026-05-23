@@ -160,6 +160,121 @@
     }
 
     // -----------------------------
+    // Filter
+    // -----------------------------
+
+    const IGNORE_RULES = [
+
+        {
+            domain: 'google.',
+            ignoreAll: false,
+
+            selectors: [
+                '.ULSxyf',
+                '.rHJjod',
+                '.Ea5p3b',
+                '[data-vid]'
+            ]
+        },
+
+        {
+            domain: 'example.com',
+            ignoreAll: true
+        }
+    ];
+
+    function matchesDomain(ruleDomain) {
+
+        const hostname = location.hostname;
+        const referrer = document.referrer || '';
+
+        return (
+            hostname.includes(ruleDomain) ||
+            referrer.includes(ruleDomain)
+        );
+    }
+
+//    function isIgnoredContext() {
+//
+//        for (const rule of IGNORE_RULES) {
+//
+//            if (!matchesDomain(rule.domain)) {
+//                continue;
+//            }
+//
+//            // Ignore whole domain
+//            if (rule.ignoreAll) {
+//                return true;
+//            }
+//
+//            // Ignore when selectors exist
+//            if (rule.selectors?.length) {
+//
+//                for (const selector of rule.selectors) {
+//
+//                    try {
+//
+//                        if (document.querySelector(selector)) {
+//
+//                            console.log(
+//                                '[YT-LOCK] Ignored selector:',
+//                                selector
+//                            );
+//
+//                            return true;
+//                        }
+//
+//                    } catch (e) {
+//
+//                        console.warn(
+//                            '[YT-LOCK] Invalid selector:',
+//                            selector
+//                        );
+//                    }
+//                }
+//            }
+//        }
+//
+//        return false;
+//    }
+    function isEmbedded() {
+
+        try {
+            return window.self !== window.top;
+        } catch {
+            return true;
+        }
+    }
+
+    function isIgnoredContext() {
+
+        // Ignore ONLY embedded contexts
+        if (!isEmbedded()) {
+            return false;
+        }
+
+        for (const rule of IGNORE_RULES) {
+
+            if (!matchesDomain(rule.domain)) {
+                continue;
+            }
+
+            // Ignore whole domain
+            if (rule.ignoreAll) {
+                return true;
+            }
+
+            // Ignore matching embedded contexts
+            if (rule.selectors?.length) {
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // -----------------------------
     // CLAIM LOCK
     // -----------------------------
 
@@ -295,7 +410,10 @@
 
         if (document.visibilityState === 'visible') {
 
-            claimLock();
+            //claimLock();{
+            if (!isIgnoredContext()) {
+                claimLock();
+            }
         }
     });
 
@@ -306,7 +424,10 @@
     window.addEventListener('yt-navigate-finish', () => {
 
         if (!blocked) {
-            claimLock();
+            //claimLock();{
+            if (!isIgnoredContext()) {
+                claimLock();
+            }
         }
     });
 
@@ -328,7 +449,10 @@
     // START
     // -----------------------------
 
-    claimLock();
+    //claimLock();{
+    if (!isIgnoredContext()) {
+        claimLock();
+    }
 
 })();
 
